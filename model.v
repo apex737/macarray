@@ -26,15 +26,15 @@ module SRAM #(parameter BW = 32, AW = 4, ENTRY = 16, WRITE = 0, MEM_FILE="mem.he
     input    wire                CSN,    // CHIP SELECT (ACTIVE LOW)
     input    wire    [AW-1:0]    A,      // ADDRESS
     input    wire                WEN,    // READ/WRITE ENABLE
-    input    wire    [BW-1:0]    DI,     // DATA INPUT
-    output   wire    [BW-1:0]    DOUT    // DATA OUTPUT
+    input    wire    [BW-1:0]    DI,     // DATA INPUT (O - MEM)
+    output   wire    [BW-1:0]    DOUT    // DATA OUTPUT (I/W - MEM)
 );
 
     parameter    ATIME    = 2;
 
     reg        [BW-1:0]    ram[0:ENTRY-1]; // ram 그대로 활용
     reg        [BW-1:0]    outline;
-	reg		   [63:0]	   readmem_inst[0:7];
+	reg		   [63:0]	   readmem_inst[0:7]; // 64Byte * 8줄 
 	
 	integer i;
 	
