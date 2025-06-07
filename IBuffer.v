@@ -1,4 +1,4 @@
-module IBuffer4x1(
+module IBuffer (
 	input CLK, RSTN, EN,
 	input [31:0] IWord,
 	output reg [7:0] OData,

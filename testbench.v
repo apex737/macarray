@@ -136,7 +136,7 @@ module testbench;
 		#(10*PERIOD)
 		RSTN <= 1'b1;
 		#(2*PERIOD)
-		MNT <= 12'h888;	//M, N, T values are between 1~8 // MNT를 수정하면서 테스트
+		MNT <= 12'h444;	//M, N, T values are between 1~8 // MNT를 수정하면서 테스트
 		START <= 1'b1;
 
 		#(1000*PERIOD);

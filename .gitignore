@@ -40,3 +40,13 @@ work/testbench/_primary.vhd
 work/testbench/verilog.prw
 work/testbench/verilog.psm
 macarray.mpf
+work/@i@buffer4x1/_primary.dat
+work/@i@buffer4x1/_primary.dbs
+work/@i@buffer4x1/_primary.vhd
+work/@i@buffer4x1/verilog.prw
+work/@i@buffer4x1/verilog.psm
+work/@o@buffer/_primary.dat
+work/@o@buffer/_primary.dbs
+work/@o@buffer/_primary.vhd
+work/@o@buffer/verilog.prw
+work/@o@buffer/verilog.psm
