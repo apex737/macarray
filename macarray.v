@@ -30,12 +30,16 @@ module macarray (
 
 
 	// WRITE YOUR CONTROL SYSTEM CODE
-
+	
 
 
 
 	// WRITE YOUR MAC_ARRAY DATAPATH CODE
+	// Input Buffer 
 	
+	// MAC4x4
+	
+	// Output Buffer
 
 
 endmodule
