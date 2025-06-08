@@ -2,16 +2,19 @@
 module MAC4x4 (
     input               CLK, 
     input               RSTN,
+		// [입력 1] 가중치 인터페이스
     input               W_LOAD,
     input       [1:0]   WROW,
     input       [31:0]  WDATA,
+		// [입력 2] 입력 데이터 및 제어 인터페이스
     input       [31:0]  IDATA,
     input       [3:0]   ICOL_VALID,
+		// [출력] 결과 데이터 및 제어 인터페이스
     output      [63:0]  ODATA,
     output      [3:0]   OVALID
 );
-    wire signed [7:0]  a_wires [4:0][3:0];
-    wire signed [15:0] psum_wires [3:0][4:0];
+    wire signed [7:0]  a_wires [4:0][3:0]; // 8bit(A)의 수직 이동경로
+    wire signed [15:0] psum_wires [3:0][4:0]; // 16bit(PSUM)의 수평 이동경로
     wire [15:0]        en_right_from_pes;
     wire [15:0]        en_down_from_pes;
 

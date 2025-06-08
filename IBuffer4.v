@@ -1,11 +1,9 @@
 module IBuffer4 (
     input               CLK,
     input               RSTN,
-    /*
-			{LOAD_EN, START_CALC} -> 2'b10 : Load, 2'b01 : Start
-			FSM 의 입장에서는 2'b00 (INIT/IDLE) -> 2'b10 (Load 4cycle) ->  2'b01 (Run 1cycle) -> 2'b00
-			이걸 어떻게 최대한 빠르게 구현할까 ??
-		*/
+    // {LOAD_EN, START_CALC} -> 2'b10 : Load, 2'b01 : Start
+		//	FSM 의 입장에서는 2'b00 (INIT/IDLE) -> 2'b10 (Load 4cycle) ->  2'b01 (Run 1cycle) -> 2'b00
+		
     input               LOAD_EN,        // 데이터 로드 Enable
     input               START_CALC,     // 계산 시작(쉬프트 시작) Enable
     // ----------------------
@@ -53,6 +51,7 @@ module IBuffer4 (
     assign IROW_o = {OD_a[3], OD_a[2], OD_a[1], OD_a[0]};
     
     // ICOL_VALID 생성 로직은 이제 START_CALC를 기준으로 동작
+		// ICOL_VALID 신호는 IBuffer4가 MAC4x4에게 보내는, Column 출발 신호탄 묶음
     assign ICOL_VALID[0] = START_CALC & ~Shift_a[0];
     assign ICOL_VALID[1] = Shift_a[0] & ~Shift_a[1];
     assign ICOL_VALID[2] = Shift_a[1] & ~Shift_a[2];

@@ -11,10 +11,10 @@ module PE (
     input               ENTop,
     output reg          ENDown,
     // Data Paths
-    input       signed [7:0]  A_IN,
-    output      signed [7:0]  A_OUT,
-    input       signed [15:0] PSUM_IN,
-    output      signed [15:0] PSUM_OUT
+    input       signed [7:0]  A_IN, // from top
+    output      signed [7:0]  A_OUT, // to bottom
+    input       signed [15:0] PSUM_IN, // from left
+    output      signed [15:0] PSUM_OUT // to right
 );
 
     reg signed [7:0]  W_reg;
