@@ -99,3 +99,8 @@ work/tb_final_system_v2/_primary.dbs
 work/tb_final_system_v2/_primary.vhd
 work/tb_final_system_v2/verilog.prw
 work/tb_final_system_v2/verilog.psm
+work/@control@unit/_primary.dat
+work/@control@unit/_primary.dbs
+work/@control@unit/_primary.vhd
+work/@control@unit/verilog.prw
+work/@control@unit/verilog.psm

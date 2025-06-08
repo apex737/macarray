@@ -1,3 +1,4 @@
+// 파일명: MAC4x4.v
 module MAC4x4 (
     input               CLK, 
     input               RSTN,

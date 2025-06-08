@@ -1,7 +1,11 @@
 module IBuffer4 (
     input               CLK,
     input               RSTN,
-    // --- 제어 신호 분리 ---
+    /*
+			{LOAD_EN, START_CALC} -> 2'b10 : Load, 2'b01 : Start
+			FSM 의 입장에서는 2'b00 (INIT/IDLE) -> 2'b10 (Load 4cycle) ->  2'b01 (Run 1cycle) -> 2'b00
+			이걸 어떻게 최대한 빠르게 구현할까 ??
+		*/
     input               LOAD_EN,        // 데이터 로드 Enable
     input               START_CALC,     // 계산 시작(쉬프트 시작) Enable
     // ----------------------
@@ -27,12 +31,24 @@ module IBuffer4 (
     wire [7:0] OD_a [0:3];
     wire [2:0] Shift_a;
     wire       dummy_en_out;
-
-    // Shift 체인은 START_CALC 신호로 시작
-    IBuffer_col ib0 (.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[0]), .ShiftEN(START_CALC),   .IWord(IWord), .OD(OD_a[0]), .ShiftEN_o(Shift_a[0]));
-    IBuffer_col ib1 (.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[1]), .ShiftEN(Shift_a[0]),    .IWord(IWord), .OD(OD_a[1]), .ShiftEN_o(Shift_a[1]));
-    IBuffer_col ib2 (.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[2]), .ShiftEN(Shift_a[1]),    .IWord(IWord), .OD(OD_a[2]), .ShiftEN_o(Shift_a[2]));
-    IBuffer_col ib3 (.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[3]), .ShiftEN(Shift_a[2]),    .IWord(IWord), .OD(OD_a[3]), .ShiftEN_o(dummy_en_out));
+		
+		// Shift 체인은 START_CALC 신호로 시작
+		IBuffer_col ib0 (
+			.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[0]), .ShiftEN(START_CALC),   
+			.IWord(IWord), .OD(OD_a[0]), .ShiftEN_o(Shift_a[0])
+		);
+    IBuffer_col ib1 (
+			.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[1]), .ShiftEN(Shift_a[0]), 
+			.IWord(IWord), .OD(OD_a[1]), .ShiftEN_o(Shift_a[1])
+		);
+    IBuffer_col ib2 (
+			.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[2]), .ShiftEN(Shift_a[1]), 
+			.IWord(IWord), .OD(OD_a[2]), .ShiftEN_o(Shift_a[2])
+		);
+    IBuffer_col ib3 (
+			.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[3]), .ShiftEN(Shift_a[2]),    
+			.IWord(IWord), .OD(OD_a[3]), .ShiftEN_o(dummy_en_out)
+		);
 
     assign IROW_o = {OD_a[3], OD_a[2], OD_a[1], OD_a[0]};
     
