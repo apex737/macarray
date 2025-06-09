@@ -20,7 +20,7 @@ module IBuffer_col (
 				WData[2] <= IWord[15:8];
 				WData[3] <= IWord[7:0];
 			end
-			else if (ENDown) begin // 역할 1. ENDown은 EN을 아래로 전파한다
+			else if (ENDown) begin // 역할 1. ENDown은 Load된 IWord를 8bit씩 Shift 시킨다
 				WData[0] <= WData[1];
 				WData[1] <= WData[2];
 				WData[2] <= WData[3];
@@ -34,9 +34,9 @@ module IBuffer_col (
 			OD <= 0;
 			ENShift <= 0;
 		end 
-		else if (ENDown) begin // 역할 2. ENDown은 EN을 옆으로 전파한다
-			OD <= WData[0];
-			ENShift <= ENDown;
+		else if (ENDown) begin 
+			OD <= WData[0];		 // 역할 2. ENDown은 Output Data를 아래로 전파한다
+			ENShift <= ENDown; // 역할 3. ENDown은 EN을 옆으로 전파한다
 		end
 		else begin
 			OD <= 0;

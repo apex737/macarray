@@ -42,7 +42,7 @@ module MAC4x4 (
 						wire en_left_val = (j == 0) ? en_top_val     : en_right_from_pes[i*4 + (j-1)];
 						
 						PE pe_inst (
-								.CLK(CLK), .RSTN(RSTN), .EN(1'b1),
+								.CLK(CLK), .RSTN(RSTN),
 								.W_LOAD(W_LOAD && (WROW == i)), 
 								.W_IN(w_val),
 								.ENTop(en_top_val), // INPUT

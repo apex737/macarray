@@ -1,5 +1,5 @@
 module PE (
-    input               CLK, RSTN, EN,
+    input               CLK, RSTN, 
     input               W_LOAD,
     input       signed [7:0]  W_IN,
     input               ENLeft,
@@ -25,7 +25,7 @@ module PE (
     always @(posedge CLK or negedge RSTN) begin
         if (!RSTN) begin
             A_r1 <= 0; PSUM_r1 <= 0; AxW <= 0; ENLeft_r1 <= 0; ENTop_r1 <= 0;
-        end else if (EN) begin
+        end else if (ENTop | ENLeft) begin
             A_r1 <= A_IN; 
 						PSUM_r1 <= PSUM_IN; 
 						AxW <= A_IN * W_reg;
@@ -39,13 +39,11 @@ module PE (
     always @(posedge CLK or negedge RSTN) begin
         if (!RSTN) begin
             A_OUT <= 0; PSUM_OUT <= 0; ENRight <= 0; ENDown <= 0;
-        end else if (EN) begin
+        end else if (ENTop_r1 & ENLeft_r1) begin
             A_OUT <= A_r1; 
 						PSUM_OUT <= PSUM_r1 + AxW;
             ENRight <= ENLeft_r1; 
 						ENDown <= ENTop_r1;
-        end else begin
-            A_OUT <= 0; PSUM_OUT <= 0; ENRight <= 0; ENDown <= 0;
-        end
+        end 
     end
 endmodule
