@@ -1,27 +1,29 @@
 module IBuffer_col (
 	input CLK,
 	input RSTN,
-	input WriteEN, // 버퍼에 들어온 값을 실제로 쓸 것인지 결정
-	input ShiftEN, // en을 인접 버퍼로 전파 
-	input [31:0] IWord, // IBuffer4에서 전달받은 값 
+	input WriteEN,
+	input ShiftEN,
+	input [31:0] IWord,
 	output reg [7:0] OD,
 	output reg ShiftEN_o
 );
 	reg [7:0] WData [0:3];
+	integer i;
 
 	always @(posedge CLK or negedge RSTN) begin
 		if (!RSTN) begin
-			WData[0] <= 0; WData[1] <= 0;
-			WData[2] <= 0; WData[3] <= 0;
+			for (i = 0; i < 4; i = i + 1) begin
+				WData[i] <= 0;
+			end
 		end
 		else begin
 			if (WriteEN) begin
-				WData[3] <= IWord[7:0];
-				WData[2] <= IWord[15:8];
-				WData[1] <= IWord[23:16];
 				WData[0] <= IWord[31:24];
+				WData[1] <= IWord[23:16];
+				WData[2] <= IWord[15:8];
+				WData[3] <= IWord[7:0];
 			end
-			else if (ShiftEN) begin // Write Mode와 Run Mode를 분리
+			else if (ShiftEN) begin
 				WData[0] <= WData[1];
 				WData[1] <= WData[2];
 				WData[2] <= WData[3];

@@ -1,103 +1,64 @@
-// IB
+// 파일명: ControlUnit.v
 module ControlUnit (
     input               CLK,
     input               RSTN,
-    
-    // 외부에서 들어오는 제어 신호
-    input               Start,  // 전체 연산을 시작하라는 외부 명령
-    input       [3:0]   mac_OVALID, // MAC4x4의 OVALID 출력
-
-    // IBuffer4로 나가는 제어 신호
+    input               ext_start,
+    input               row_done_from_output,
     output reg          LOAD_EN,
     output reg          START_CALC,
-
-    // 최종 시스템 출력 신호
-    output reg          system_Done // 모든 연산이 끝났음을 알림
+    output reg          W_LOAD,
+    output reg  [1:0]   WROW,
+    output reg  [1:0]   IDST,
+    output reg  [3:0]   ODST,
+    output reg          System_Done
 );
-
-    // FSM 상태 정의
-    localparam S_IDLE = 3'd0;
-    localparam S_LOAD = 3'd1;
-    localparam S_START = 3'd2;
-    localparam S_WAIT_DONE = 3'd3;
-    localparam S_DONE = 3'd4;
-
-    // FSM 상태 레지스터
+    localparam S_IDLE=0, S_LOAD_W=1, S_LOAD_A=2, S_START_C=3, S_WAIT=4, S_DONE=5;
     reg [2:0] current_state, next_state;
-    // 4사이클 로드를 위한 카운터
-    reg [1:0] load_counter;
-    // 4개 행의 출력을 확인하기 위한 카운터
-    reg [3:0] done_checker;
+    reg [1:0] row_counter;
 
-    // FSM State Transition Logic (Sequential Block)
     always @(posedge CLK or negedge RSTN) begin
-        if (!RSTN) begin
-            current_state <= S_IDLE;
-        end else begin
-            current_state <= next_state;
-        end
+        if (!RSTN) current_state <= S_IDLE;
+        else current_state <= next_state;
     end
 
-    // FSM Output & Next State Logic (Combinational Block)
     always @(*) begin
-        // 기본 출력값 설정 (Latch 방지)
-        next_state = current_state;
-        LOAD_EN = 1'b0;
-        START_CALC = 1'b0;
-        system_Done = 1'b0;
+        next_state=current_state;
+        LOAD_EN=0; START_CALC=0; W_LOAD=0;
+        WROW=0; IDST=0; ODST=0; System_Done=0;
 
-        case (current_state)
-            S_IDLE: begin
-                // 외부 시작 신호를 기다림
-                if (Start) begin
-                    next_state = S_LOAD;
-                end
+        case(current_state)
+            S_IDLE: if (ext_start) next_state = S_LOAD_W;
+            S_LOAD_W: begin
+                W_LOAD = 1; WROW = row_counter;
+                if (row_counter == 2'd3) next_state = S_LOAD_A;
             end
-            S_LOAD: begin
-                // 4 사이클 동안 LOAD_EN=1 유지
-                LOAD_EN = 1'b1;
-                // 카운터가 3이 되면 (즉, 4 사이클이 지나면) 다음 상태로
-                if (load_counter == 2'd3) begin
-                    next_state = S_START;
-                end
+            S_LOAD_A: begin
+                LOAD_EN = 1; IDST = row_counter; ODST = row_counter;
+                if (row_counter == 2'd3) next_state = S_START_C;
             end
-            S_START: begin
-                // 1 사이클 동안 START_CALC=1 펄스 발생
-                START_CALC = 1'b1;
-                next_state = S_WAIT_DONE;
+            S_START_C: begin
+                START_CALC = 1; next_state = S_WAIT;
             end
-            S_WAIT_DONE: begin
-                // 모든 행의 OVALID 신호가 한 번씩 다 들어왔는지 확인
-                // done_checker가 1111이 되면 연산 완료
-                if (done_checker == 4'b1111) begin
-                    next_state = S_DONE;
+            S_WAIT: begin
+                if (row_done_from_output) begin
+                    if (row_counter == 2'd3) next_state = S_DONE;
+                    else next_state = S_LOAD_A;
                 end
             end
             S_DONE: begin
-                // 최종 완료 신호 출력
-                system_Done = 1'b1;
-                next_state = S_DONE; // 상태 유지
+                System_Done = 1; next_state = S_DONE;
             end
         endcase
     end
     
-    // Counter Logics
     always @(posedge CLK or negedge RSTN) begin
-        if (!RSTN) begin
-            load_counter <= 0;
-            done_checker <= 0;
-        end else begin
-            // Load Counter: S_LOAD 상태일 때만 1씩 증가
-            if (current_state == S_LOAD) begin
-                load_counter <= load_counter + 1;
-            end else begin
-                load_counter <= 0; // 다른 상태에서는 초기화
-            end
-
-            // Done Checker: OVALID 신호를 누적하여 저장
-            // OVALID는 one-hot 이므로 OR 연산으로 누적 가능
-            done_checker <= done_checker | mac_OVALID; 
+        if(!RSTN) row_counter <= 0;
+        else if(next_state == S_IDLE) row_counter <= 0;
+        else if(current_state != next_state) begin // 상태가 바뀔 때
+            if(next_state == S_LOAD_A) row_counter <= 0;
+            else if(next_state == S_WAIT && current_state == S_LOAD_A) row_counter <= 0;
+            else if(current_state == S_WAIT && next_state == S_LOAD_A) row_counter <= row_counter + 1;
+            else row_counter <= row_counter + 1;
         end
     end
-
 endmodule

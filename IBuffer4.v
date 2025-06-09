@@ -1,12 +1,8 @@
 module IBuffer4 (
     input               CLK,
     input               RSTN,
-    // {LOAD_EN, START_CALC} -> 2'b10 : Load, 2'b01 : Start
-		//	FSM 의 입장에서는 2'b00 (INIT/IDLE) -> 2'b10 (Load 4cycle) ->  2'b01 (Run 1cycle) -> 2'b00
-		
-    input               LOAD_EN,        // 데이터 로드 Enable
-    input               START_CALC,     // 계산 시작(쉬프트 시작) Enable
-    // ----------------------
+    input               LOAD_EN,
+    input               START_CALC,
     input       [1:0]   IDST,
     input       [31:0]  IWord,
     output      [31:0]  IROW_o,
@@ -19,7 +15,6 @@ module IBuffer4 (
         else ODST_o <= ODST_i;
     end
 
-    // Write Enable은 LOAD_EN 신호에 따라 동작
     wire [3:0] WriteEN;
     assign WriteEN[0] = LOAD_EN & (IDST == 2'd0);
     assign WriteEN[1] = LOAD_EN & (IDST == 2'd1);
@@ -29,29 +24,14 @@ module IBuffer4 (
     wire [7:0] OD_a [0:3];
     wire [2:0] Shift_a;
     wire       dummy_en_out;
-		
-		// Shift 체인은 START_CALC 신호로 시작
-		IBuffer_col ib0 (
-			.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[0]), .ShiftEN(START_CALC),   
-			.IWord(IWord), .OD(OD_a[0]), .ShiftEN_o(Shift_a[0])
-		);
-    IBuffer_col ib1 (
-			.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[1]), .ShiftEN(Shift_a[0]), 
-			.IWord(IWord), .OD(OD_a[1]), .ShiftEN_o(Shift_a[1])
-		);
-    IBuffer_col ib2 (
-			.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[2]), .ShiftEN(Shift_a[1]), 
-			.IWord(IWord), .OD(OD_a[2]), .ShiftEN_o(Shift_a[2])
-		);
-    IBuffer_col ib3 (
-			.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[3]), .ShiftEN(Shift_a[2]),    
-			.IWord(IWord), .OD(OD_a[3]), .ShiftEN_o(dummy_en_out)
-		);
 
-    assign IROW_o = {OD_a[3], OD_a[2], OD_a[1], OD_a[0]};
+    IBuffer_col ib0 (.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[0]), .ShiftEN(START_CALC),   .IWord(IWord), .OD(OD_a[0]), .ShiftEN_o(Shift_a[0]));
+    IBuffer_col ib1 (.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[1]), .ShiftEN(Shift_a[0]),    .IWord(IWord), .OD(OD_a[1]), .ShiftEN_o(Shift_a[1]));
+    IBuffer_col ib2 (.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[2]), .ShiftEN(Shift_a[1]),    .IWord(IWord), .OD(OD_a[2]), .ShiftEN_o(Shift_a[2]));
+    IBuffer_col ib3 (.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[3]), .ShiftEN(Shift_a[2]),    .IWord(IWord), .OD(OD_a[3]), .ShiftEN_o(dummy_en_out));
+
+    assign IROW_o = {OD_a[0], OD_a[1], OD_a[2], OD_a[3]};
     
-    // ICOL_VALID 생성 로직은 이제 START_CALC를 기준으로 동작
-		// ICOL_VALID 신호는 IBuffer4가 MAC4x4에게 보내는, Column 출발 신호탄 묶음
     assign ICOL_VALID[0] = START_CALC & ~Shift_a[0];
     assign ICOL_VALID[1] = Shift_a[0] & ~Shift_a[1];
     assign ICOL_VALID[2] = Shift_a[1] & ~Shift_a[2];
