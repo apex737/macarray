@@ -125,3 +125,14 @@ work/@output@stage/_primary.dbs
 work/@output@stage/_primary.vhd
 work/@output@stage/verilog.prw
 work/@output@stage/verilog.psm
+tb.v
+tb2.v
+vish_stacktrace.vstf
+work/_temp/vlog1sdtds
+work/_temp/vlogty38dj
+work/_temp/vlogv1kfs6
+work/tb_datapath/_primary.dat
+work/tb_datapath/_primary.dbs
+work/tb_datapath/_primary.vhd
+work/tb_datapath/verilog.prw
+work/tb_datapath/verilog.psm
