@@ -2,105 +2,124 @@ module Control(
     input  CLK, RSTN, Start,
     input  [11:0] MNT,
 
-    input Tile_Done, 			// OutputStage 가 4행 × 64bit write 완료 시 1-pulse
-    output reg LOAD_I, LOAD_W, // Weight load (4cycle)
-    output reg START_CALC,     // IBuffer enable
+    input  Tile_Done,                // OutputStage 1-pulse (계산 완료)
+    output reg LOAD_I, LOAD_W,       // *** 분리된 로드 신호
+    output reg START_CALC,           // 4-사이클 계산 Enable
 
-    output [1:0] ICOL,          // 열-타일 index (T-방향)
-    output [1:0] WROW,          // 행-타일 index (M-방향)
-
-    output [3:0] ODST,          // OutputMemory 타일 주소 (0‥15)
-    output [4:0] shI, shW       // 8-bit 단위 left-shift  (0,8,16,24)  = (4-valid)*8
+    output      [1:0] ICOL, WROW,    // 열/행 타일 인덱스
+    output      [3:0] ODST,          // OutputMemory 타일 주소
+    output reg [4:0] shI,  shW       // 8-bit padding shift
 );
 
-// ───────── 1.  입력 레지스터 / 상수 계산
-wire [3:0] M, N, T;
-always@(posedge CLK, negedge RSTN) begin
-    if(!RSTN) {M,N,T} <= 12'd0;
-    else if(Start) {M,N,T} <= MNT;
-end
+// ───────── 1. 런타임 파라미터
+reg [3:0] M,N,T;
+always @(posedge CLK or negedge RSTN)
+    if(!RSTN)       {M,N,T} <= 12'd0;
+    else if(Start)  {M,N,T} <= MNT;
 
-wire [1:0] total_t, total_m, total_n;       
-always@* begin
-    total_t = (T > 4) ? 2'd2 : 2'd1;
-    total_m = (M > 4) ? 2'd2 : 2'd1;
-    total_n = (N > 4) ? 2'd2 : 2'd1;
-end
+// 1/2 로 타일 개수를 표현 : 1 → 1패스(≤4), 2 → 2패스(5~8)
+wire [1:0] total_t = (T > 4) ? 2'd2 : 2'd1;
+wire [1:0] total_m = (M > 4) ? 2'd2 : 2'd1;
+wire [1:0] total_n = (N > 4) ? 2'd2 : 2'd1;
 
-// ───────── 2.  3-중 루프 카운터 (t, m, n)
-reg [1:0] t, m, n;   
-always@(posedge CLK, negedge RSTN) begin
-    if(!RSTN) begin t <= 0; m <= 0; n <= 0; end
-    else if(Start) begin t <= 0; m <= 0; n <= 0; end
+// ───────── 2. 3-중 루프 카운터 (열-타일 t → 뎁스 n → 행 m)
+reg [1:0] t, m, n;
+always @(posedge CLK or negedge RSTN) begin
+    if(!RSTN || Start) begin t<=0; m<=0; n<=0; end
     else if(Tile_Done) begin
-        // ───── Tile-Done 이벤트 후 next-tile 결정
-        if(n < total_n - 1) n <= n + 1; // 누산
-				else begin
+        if(n < total_n-1)             n <= n + 1;            // 누산 타일
+        else begin
             n <= 0;
-            if(t < total_t - 1) t <= t + 1;  // 옆 열
-						else begin
-                t <= 0; // m+1 : 아래 행, 0 : 전체 행렬 끝
-								m <= (m < total_m - 1) ? m + 1 : 0;
+            if(t < total_t-1)         t <= t + 1;            // 옆 열
+            else begin
+                t <= 0;
+                m <= (m < total_m-1) ? m + 1 : 0;           // 아래 행 (행렬 끝이면 0)
             end
         end
     end
 end
 
-// ───────── 3.  FSM
-localparam [1:0] 
-	IDLE = 2'd0, 
-	LOAD_W = 2'd1, 
-	RUN = 2'd2;
-	
-reg [1:0] state, next;
+// ───────── 3. FSM  (4-사이클 로드 & 4-사이클 계산)
+localparam [2:0]
+    IDLE      = 3'd0,
+    LOAD_BOTH = 3'd1,   // *** I,W 동시 4-cycle
+    RUN_FIRST = 3'd2,   // *** 첫 계산 4-cycle
+    LOAD_I    = 3'd3,   // *** I만 4-cycle
+    RUN       = 3'd4;
 
-always@(posedge CLK, negedge RSTN) begin
-	if(!RSTN) state <= IDLE;
-	else      state <= next;
-end
+reg [2:0] state, next;
+reg [2:0] cnt;          // 0-3 사이클 카운터
 
-always@* begin
+// 상태 레지스터
+always @(posedge CLK or negedge RSTN)
+    if(!RSTN) state <= IDLE;
+    else      state <= next;
+
+// 4-사이클 타이머
+always @(posedge CLK or negedge RSTN)
+    if(!RSTN || state!=next) cnt <= 0;
+    else                     cnt <= cnt + 1;
+
+// 조합 로직
+always @(*) begin
     // 기본값
-    LOAD         = 1'b0;
-    START_CALC   = 1'b0;
+    {LOAD_I, LOAD_W, START_CALC} = 3'b000;
+    next = state;
 
     case(state)
-    IDLE: if(Start) begin // 첫 행-타일은 무조건 load
-              LOAD = 1'b1;            
-              next = LOAD_W;
+    //------------------------------------------------------------------
+    IDLE: if(Start) begin
+              {LOAD_I, LOAD_W} = 2'b11;              // 첫 타일: I,W 모두
+              next  = LOAD_BOTH;
           end
-    LOAD_W: next = RUN; // 4-cycle weight load 완료
+    //------------------------------------------------------------------
+    LOAD_BOTH: begin
+        {LOAD_I, LOAD_W} = 2'b11;
+        if(cnt==3) next = RUN_FIRST;                 // 4-cycle 종료
+    end
+    //------------------------------------------------------------------
+    RUN_FIRST: begin
+        START_CALC = 1'b1;
+        if(cnt==3) next = LOAD_I;                    // 첫 계산 후 곧 I로드
+    end
+    //------------------------------------------------------------------
+    LOAD_I: begin
+        LOAD_I = 1'b1;
+        if(cnt==3) next = RUN;                       // I 로드 끝 → 계산
+    end
+    //------------------------------------------------------------------
     RUN: begin
-        START_CALC = 1'b1;  // tile-pass 동안 HIGH
-        if(Tile_Done) begin // 다음 tile 패스가 행-타일( m 증가 )이면 W re-load
-            if( (n == total_n - 1) && 
-								(t == total_t - 1) &&
-                (m < total_m - 1) ) LOAD = 1'b1;
-
-            // 모든 연산 끝났으면 idle 복귀
-            if( (n == total_n - 1) && 
-								(t == total_t - 1) &&
-                (m == total_m - 1) ) next = IDLE;
-            else if(LOAD)  next = LOAD_W;  // weight 새로 load 후 run
-            else 	next = RUN;           	 // 같은 weight, 다음 pass 바로 run
+        START_CALC = 1'b1;
+        if(cnt==3) begin                             // 4-cycle 계산 끝
+            // 이 타일 계산 종료 시점에 Row-change 필요?
+            if((n==total_n-1)&&(t==total_t-1)&&(m<total_m-1)) begin
+                {LOAD_I, LOAD_W} = 2'b11;            // Weight도 새로
+                next = LOAD_BOTH;
+            end
+            // 모든 연산 끝
+            else if((n==total_n-1)&&(t==total_t-1)&&(m==total_m-1)) begin
+                next = IDLE;
+            end
+            // Weight 유지 & I만 또 필요한 경우
+            else begin
+                LOAD_I = 1'b1;
+                next = LOAD_I;
+            end
         end
     end
     endcase
 end
 
-// ───────── 4.  shI / shW  (padding shift)  &  ODST, ICOL, WROW
-wire [2:0] rem_n;  // 이번 pass 유효 column 수(0~4)
-always@* begin
-    rem_n = (N > ((n << 2) + 4)) ? 3'd4 : (N - ( n << 2) );
-    shI   = {1'b0, (4 - rem_n)} << 3;               // (4-rem)*8  …폭 5
-    shW   = shI;
+// ───────── 4. Shift & 주소 매핑
+wire [2:0] rem_n = (N > ((n<<2)+4)) ? 3'd4 : (N - (n<<2));
+//  (4-rem)*8 을 5-bit로: 0, 8, 16, 24
+always @(*) begin
+    shI = {1'b0,(4-rem_n)} << 3;
+    shW = shI;
 end
 
-assign ICOL = t;                                // 0 / 1
-assign WROW = m;                                // 0 / 1
-assign ODST = {m, t};                       // 행-타일 상위 2비트 | 열-타일
-
-// ───────── 5.  START_CALC 1-cycle 펄스 발생 (OutputStage 초기화용)
-assign start_calc_pulse;     // (LOAD_W→RUN 전이, 바로 위 FSM 블록에서 생성)
+assign ICOL = t;          // 열-타일 index → IBuffer_col 선택
+assign WROW = m;          // 행-타일 index → Weight 행 주소
+assign ODST = {m,t};      // 4×4 타일 배치 그대로 OutputMemory addr
 
 endmodule
