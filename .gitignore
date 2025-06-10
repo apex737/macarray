@@ -80,7 +80,6 @@ work/_temp/vlogax5shr
 work/_temp/vlogq3ej46
 work/tb_debug_mac4x4/_primary.dat
 work/tb_debug_mac4x4/_primary.dbs
-Control.v
 work/_temp/vlog8dgvb7
 work/_temp/vlogcq2ann
 work/_temp/vloge5q9bh
@@ -125,8 +124,6 @@ work/@output@stage/_primary.dbs
 work/@output@stage/_primary.vhd
 work/@output@stage/verilog.prw
 work/@output@stage/verilog.psm
-tb.v
-tb2.v
 vish_stacktrace.vstf
 work/_temp/vlog1sdtds
 work/_temp/vlogty38dj
@@ -136,3 +133,4 @@ work/tb_datapath/_primary.dbs
 work/tb_datapath/_primary.vhd
 work/tb_datapath/verilog.prw
 work/tb_datapath/verilog.psm
+work/_temp/vlogneq02e
