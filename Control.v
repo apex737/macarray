@@ -22,7 +22,7 @@ wire [1:0] total_t = (T > 4) ? 2'd2 : 2'd1;
 wire [1:0] total_m = (M > 4) ? 2'd2 : 2'd1;
 wire [1:0] total_n = (N > 4) ? 2'd2 : 2'd1;
 
-// ───────── 2. 3-중 루프 카운터 (열-타일 t → 뎁스 n → 행 m)
+// ───────── 2. 3-중 루프 카운터 (열 t → 행 m → 뎁스 n  )
 reg [1:0] t, m, n;
 always @(posedge CLK or negedge RSTN) begin
     if(!RSTN || Start) begin t<=0; m<=0; n<=0; end
@@ -44,7 +44,7 @@ localparam [2:0]
     IDLE      = 3'd0,
     LOAD_BOTH = 3'd1,   // *** I,W 동시 4-cycle
     RUN_FIRST = 3'd2,   // *** 첫 계산 4-cycle
-    LOAD_I    = 3'd3,   // *** I만 4-cycle
+    LOAD_INPUT    = 3'd3,   // *** I만 4-cycle
     RUN       = 3'd4;
 
 reg [2:0] state, next;
@@ -57,8 +57,9 @@ always @(posedge CLK or negedge RSTN)
 
 // 4-사이클 타이머
 always @(posedge CLK or negedge RSTN)
-    if(!RSTN || state!=next) cnt <= 0;
-    else                     cnt <= cnt + 1;
+    if(!RSTN) cnt <= 0;
+		else if(state!=next)	cnt <= 0;
+    else                  cnt <= cnt + 1;
 
 // 조합 로직
 always @(*) begin
@@ -67,33 +68,29 @@ always @(*) begin
     next = state;
 
     case(state)
-    //------------------------------------------------------------------
-    IDLE: if(Start) begin
-              {LOAD_I, LOAD_W} = 2'b11;              // 첫 타일: I,W 모두
-              next  = LOAD_BOTH;
-          end
-    //------------------------------------------------------------------
+    IDLE: if(Start) next = LOAD_BOTH;
+					
     LOAD_BOTH: begin
-        {LOAD_I, LOAD_W} = 2'b11;
+        {LOAD_I, LOAD_W, START_CALC} = 3'b110;
         if(cnt==3) next = RUN_FIRST;                 // 4-cycle 종료
     end
-    //------------------------------------------------------------------
+
     RUN_FIRST: begin
-        START_CALC = 1'b1;
+        {LOAD_I, LOAD_W, START_CALC} = 3'b001;
         if(cnt==3) next = LOAD_I;                    // 첫 계산 후 곧 I로드
     end
-    //------------------------------------------------------------------
-    LOAD_I: begin
-        LOAD_I = 1'b1;
+
+    LOAD_INPUT: begin
+        {LOAD_I, LOAD_W, START_CALC} = 3'b100;
         if(cnt==3) next = RUN;                       // I 로드 끝 → 계산
     end
-    //------------------------------------------------------------------
+
     RUN: begin
-        START_CALC = 1'b1;
+				{LOAD_I, LOAD_W, START_CALC} = 3'b001;
         if(cnt==3) begin                             // 4-cycle 계산 끝
             // 이 타일 계산 종료 시점에 Row-change 필요?
             if((n==total_n-1)&&(t==total_t-1)&&(m<total_m-1)) begin
-                {LOAD_I, LOAD_W} = 2'b11;            // Weight도 새로
+                {LOAD_I, LOAD_W, START_CALC} = 3'b110;    // Weight도 새로
                 next = LOAD_BOTH;
             end
             // 모든 연산 끝
@@ -102,8 +99,8 @@ always @(*) begin
             end
             // Weight 유지 & I만 또 필요한 경우
             else begin
-                LOAD_I = 1'b1;
-                next = LOAD_I;
+                {LOAD_I, LOAD_W, START_CALC} = 3'b100;
+                next = LOAD_INPUT;
             end
         end
     end
