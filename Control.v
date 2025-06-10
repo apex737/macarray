@@ -1,31 +1,16 @@
-// -----------------------------------------------------------------------------
-//  Control_FSM  –  matrix-multiply controller for MAC4x4 datapath
-// -----------------------------------------------------------------------------
-//  * CLK, RSTN        : global clock / asynchronous reset (active-low)
-//  * Start            : 1-cycle pulse → 연산 시작
-//  * MNT[11:0]        : {M[11:8], N[7:4], T[3:0]}  (1‥15)
-// -----------------------------------------------------------------------------
-//  * LOAD             : Weight Bank(W_LOAD) 1-cycle pulse (행-타일 바뀔 때만)
-//  * START_CALC       : IBuffer 스트림 활성 구간 (tile-pass 동안 High)
-//  * ICOL, WROW[1:0]  : 현재 열-타일, 행-타일 index (0 or 1)
-//  * ODST[3:0]        : OutputMemory 타일 주소 (0‥15)
-//  * shI, shW [4:0]   : 8-bit 단위 left-shift  (0,8,16,24)  = (4-valid)*8
-// -----------------------------------------------------------------------------
-//  * Tile_Done  (INPUT) : OutputStage 가 4행 × 64bit write 완료 시 1-pulse
-// -----------------------------------------------------------------------------
 module Control(
     input  CLK, RSTN, Start,
     input  [11:0] MNT,
 
-    input Tile_Done,
+    input Tile_Done, 			// OutputStage 가 4행 × 64bit write 완료 시 1-pulse
     output LOAD,          // Weight load (1-cycle)
     output START_CALC,    // IBuffer enable
 
     output [1:0] ICOL,          // 열-타일 index (T-방향)
     output [1:0] WROW,          // 행-타일 index (M-방향)
 
-    output [3:0] ODST,          // Output-tile addr 0-15
-    output [4:0] shI, shW       // 8-bit shift for padding
+    output [3:0] ODST,          // OutputMemory 타일 주소 (0‥15)
+    output [4:0] shI, shW       // 8-bit 단위 left-shift  (0,8,16,24)  = (4-valid)*8
 );
 
 // ───────── 1.  입력 레지스터 / 상수 계산
@@ -67,6 +52,7 @@ localparam [1:0]
 	IDLE = 2'd0, 
 	LOAD_W = 2'd1, 
 	RUN = 2'd2;
+	
 reg [1:0] state, next;
 
 always@(posedge CLK, negedge RSTN) begin
@@ -96,14 +82,15 @@ always@* begin
         // depth-pass>0 이면서 행-타일 불변이면 weight 재-load 불필요
         if(Tile_Done) begin
             // 다음 tile 패스가 행-타일( m 증가 )이면 W re-load
-            if( (n==total_n-1) && (t==total_t-1) &&
-                (m+1 < total_m) )
-                LOAD = 1'b1;
+            if( (n == total_n - 1) & 
+								(t == total_t - 1) &
+                (m + 1 < total_m ) ) LOAD = 1'b1;
+                
 
             // 모든 연산 끝났으면 idle 복귀
-            if( (n==total_n-1) && 
-								(t==total_t-1) &&
-                (m==total_m-1) ) next = IDLE;
+            if( (n == total_n - 1) & 
+								(t == total_t - 1) &
+                (m == total_m - 1) ) next = IDLE;
             else if(LOAD)  next = LOAD_W;  // weight 새로 load 후 run
             else 	next = RUN;           // 같은 weight, 다음 pass 바로 run
         end
