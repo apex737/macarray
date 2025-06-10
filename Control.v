@@ -3,8 +3,8 @@ module Control(
     input  [11:0] MNT,
 
     input Tile_Done, 			// OutputStage 가 4행 × 64bit write 완료 시 1-pulse
-    output LOAD,          // Weight load (1-cycle)
-    output START_CALC,    // IBuffer enable
+    output reg LOAD_I, LOAD_W, // Weight load (4cycle)
+    output reg START_CALC,     // IBuffer enable
 
     output [1:0] ICOL,          // 열-타일 index (T-방향)
     output [1:0] WROW,          // 행-타일 index (M-방향)
@@ -28,20 +28,19 @@ always@* begin
 end
 
 // ───────── 2.  3-중 루프 카운터 (t, m, n)
-wire [1:0] t, m, n;   // 0/1
-
+reg [1:0] t, m, n;   
 always@(posedge CLK, negedge RSTN) begin
     if(!RSTN) begin t <= 0; m <= 0; n <= 0; end
     else if(Start) begin t <= 0; m <= 0; n <= 0; end
     else if(Tile_Done) begin
         // ───── Tile-Done 이벤트 후 next-tile 결정
-        if(n + 1 < total_n) n <= n + 1; // 누산
+        if(n < total_n - 1) n <= n + 1; // 누산
 				else begin
             n <= 0;
-            if(t + 1 < total_t) t <= t + 1;  // 옆 열
+            if(t < total_t - 1) t <= t + 1;  // 옆 열
 						else begin
                 t <= 0; // m+1 : 아래 행, 0 : 전체 행렬 끝
-								m <= ( m + 1 < total_m ) ? m + 1 : 0;
+								m <= (m < total_m - 1) ? m + 1 : 0;
             end
         end
     end
@@ -60,39 +59,30 @@ always@(posedge CLK, negedge RSTN) begin
 	else      state <= next;
 end
 
-wire start_calc_pulse;
-
 always@* begin
     // 기본값
     LOAD         = 1'b0;
     START_CALC   = 1'b0;
-    start_calc_pulse = 1'b0;
 
     case(state)
     IDLE: if(Start) begin // 첫 행-타일은 무조건 load
               LOAD = 1'b1;            
               next = LOAD_W;
           end
-    LOAD_W: begin // 1-cycle weight load 완료
-        start_calc_pulse = 1'b1;
-        next = RUN;
-    end
+    LOAD_W: next = RUN; // 4-cycle weight load 완료
     RUN: begin
-        START_CALC = 1'b1;            // tile-pass 동안 HIGH
-        // depth-pass>0 이면서 행-타일 불변이면 weight 재-load 불필요
-        if(Tile_Done) begin
-            // 다음 tile 패스가 행-타일( m 증가 )이면 W re-load
-            if( (n == total_n - 1) & 
-								(t == total_t - 1) &
-                (m + 1 < total_m ) ) LOAD = 1'b1;
-                
+        START_CALC = 1'b1;  // tile-pass 동안 HIGH
+        if(Tile_Done) begin // 다음 tile 패스가 행-타일( m 증가 )이면 W re-load
+            if( (n == total_n - 1) && 
+								(t == total_t - 1) &&
+                (m < total_m - 1) ) LOAD = 1'b1;
 
             // 모든 연산 끝났으면 idle 복귀
-            if( (n == total_n - 1) & 
-								(t == total_t - 1) &
+            if( (n == total_n - 1) && 
+								(t == total_t - 1) &&
                 (m == total_m - 1) ) next = IDLE;
             else if(LOAD)  next = LOAD_W;  // weight 새로 load 후 run
-            else 	next = RUN;           // 같은 weight, 다음 pass 바로 run
+            else 	next = RUN;           	 // 같은 weight, 다음 pass 바로 run
         end
     end
     endcase
