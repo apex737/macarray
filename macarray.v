@@ -68,10 +68,10 @@ MemBuffer u_mb(
 );
 
 wire START_CALC_im, ILoad_im;
-wire [1:0] ICOL_im, WROW_im;
+wire [1:0] ICOL_im;
 wire [3:0] ODST_im;
 wire [4:0] shamt_im;
-wire [31:0] IDATA_im, WDATA_im;
+wire [31:0] IDATA_im;
 wire [31:0] IShifted = IDATA_im << shamt_im;
 IMBuffer u_im(
 	// INPUT
