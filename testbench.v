@@ -132,14 +132,38 @@ module testbench;
 
 
 	initial begin
-		RSTN <= 1'b0;
-		#(10*PERIOD)
-		RSTN <= 1'b1;
+		RSTN = 1'b0;
 		#(2*PERIOD)
-		MNT <= 12'h444;	//M, N, T values are between 1~8 // MNT를 수정하면서 테스트
-		START <= 1'b1;
+		RSTN = 1'b1;
+		#(30*PERIOD)
+		MNT = 12'h444;	//M, N, T values are between 1~8 // MNT를 수정하면서 테스트
+		START = 1'b1;
+		#(30*PERIOD)
+		MNT = 12'h644;	//M, N, T values are between 1~8 // MNT를 수정하면서 테스트
+		START = 1'b1;
+		#(30*PERIOD)
+		MNT = 12'h464;	//M, N, T values are between 1~8 // MNT를 수정하면서 테스트
+		START = 1'b1;
+		#(30*PERIOD)
+		MNT = 12'h446;	//M, N, T values are between 1~8 // MNT를 수정하면서 테스트
+		START = 1'b1;
+		#(30*PERIOD)
+		MNT = 12'h664;	//M, N, T values are between 1~8 // MNT를 수정하면서 테스트
+		START = 1'b1;
+		#(30*PERIOD)
+		MNT = 12'h466;	//M, N, T values are between 1~8 // MNT를 수정하면서 테스트
+		START = 1'b1;
+		#(30*PERIOD)
+		MNT = 12'h646;	//M, N, T values are between 1~8 // MNT를 수정하면서 테스트
+		START = 1'b1;
+		#(30*PERIOD)
+		MNT = 12'h666;	//M, N, T values are between 1~8 // MNT를 수정하면서 테스트
+		START = 1'b1;
+		#(30*PERIOD)
+		MNT = 12'h888;	//M, N, T values are between 1~8 // MNT를 수정하면서 테스트
+		START = 1'b1;
 
-		#(1000*PERIOD);
+		#(30*PERIOD)
 		$finish();
 	end
 

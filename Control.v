@@ -1,4 +1,3 @@
-`timescale 1ns/1ps
 module Control (
     input CLK, RSTN, Start,
 		input Tile_Done,    // 1-pulse – 현재 4×4 타일 연산 종료		
@@ -37,9 +36,9 @@ wire [1:0] total_n = (N > 4) ? 2'd2 : 2'd1;
 
 // Tile 포인터  (t > m > n  순으로 증가)
 // 000 -> 100 -> 010 -> 110 -> 001 -> 101 -> 011 -> 111
-reg t, m, n;
+reg [1:0] t, m, n;
 always @(posedge CLK or negedge RSTN) begin
-    if(!RSTN || Start)
+    if(!RSTN)
         {t,m,n} <= 0;
     else if(Tile_Done) begin
         if(t < total_t-1) 		t <= t + 1;
@@ -63,7 +62,7 @@ reg [1:0] ICnt, WCnt;
 reg [2:0] state, next;
 
 always @(posedge CLK or negedge RSTN) begin
-    if(!RSTN || Start) begin
+    if(!RSTN) begin
         ICnt <= 0;
         WCnt <= 0;
     end
@@ -76,9 +75,9 @@ always @(posedge CLK or negedge RSTN) begin
 end
 
 assign shamt = {2'b00,(3'd4-rem_n)} << 3;  // 0/8/16/24
-assign ADDR_I = {n, t, ICnt};
-assign ADDR_W = {n, m, WCnt};
-assign ODST = {m, t, ICnt};
+assign ADDR_I = {n[0], t[0], ICnt};
+assign ADDR_W = {n[0], m[0], WCnt};
+assign ODST = {m[0], t[0], ICnt};
 assign ICOL = ICnt;
 assign WROW = WCnt;
 assign ACC = (n == 1);

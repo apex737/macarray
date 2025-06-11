@@ -26,7 +26,7 @@ module IBuffer4 (
     wire       dummy_en_out;
 
     IBuffer_col ib0 (
-			.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[0]), .ENDown(	),   
+			.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[0]), .ENDown(START_CALC),   
 			.IWord(IWord), .OD(OD_a[0]), .ENShift(ENPipe[0])
 		);
     IBuffer_col ib1 (
