@@ -32,6 +32,8 @@ wire [1:0] ICOL_ctrl, WROW_ctrl;
 wire [3:0] ODST_ctrl;
 wire [4:0] shamt_ctrl;
 wire ILoad_ctrl, WLoad_ctrl;
+wire Tile_Done_o;
+
 Control u_ctrl(
 	// INPUT
 	.CLK(CLK), .RSTN(RSTN), .Start(START), .Tile_Done(Tile_Done_o), 
@@ -126,7 +128,6 @@ MAC4x4 u_mac4x4(
 	.ODATA(ODATA_mac), .OVALID(OVALID_mac)  
 );
 
-wire Tile_Done_o;
 wire [63:0] OMEM_Data_o;
 wire [3:0] ODST_o;
 wire OMEM_Write_o;
