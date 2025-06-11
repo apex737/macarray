@@ -5,9 +5,9 @@ module IBuffer4 (
     input               START_CALC,
     input       [1:0]   ICOL,
     input       [31:0]  IWord,
+		input       [3:0]   ODST_i,
     output      [31:0]  IROW_o,
     output      [3:0]   ICOL_VALID, // 각 Col에서 떨어트리는 EN
-    input       [3:0]   ODST_i,
     output reg  [3:0]   ODST_o
 );
     always @(posedge CLK or negedge RSTN) begin
@@ -26,7 +26,7 @@ module IBuffer4 (
     wire       dummy_en_out;
 
     IBuffer_col ib0 (
-			.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[0]), .ENDown(START_CALC),   
+			.CLK(CLK), .RSTN(RSTN), .WriteEN(WriteEN[0]), .ENDown(	),   
 			.IWord(IWord), .OD(OD_a[0]), .ENShift(ENPipe[0])
 		);
     IBuffer_col ib1 (

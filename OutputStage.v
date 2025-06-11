@@ -14,7 +14,7 @@ module OutputStage (
     reg [63:0] row_buf [0:3];        // 누적 64-bit
     reg  [1:0] seg_cnt [0:3];        // 행 별 카운터
     reg  [3:0] done_mask;            // 행 별 완료 신호
-    reg  [3:0] ODST_r;
+    reg  [3:0] ODST_r [0:3];				 // 행 별 저장 좌표
 
     wire [15:0] seg [0:3];
     assign seg[0] = MAC_ODATA[63:48];
@@ -55,10 +55,9 @@ module OutputStage (
 
                     OMEM_Write <= 1'b1;
                     OMEM_Data  <= (row_buf[i] << 16) | seg[i]; // 갓 완성된 64-bit
+                    ODST_o     <= ODST_r[i];  
 
-                    ODST_o  <= ODST_r;
-
-                    done_mask[i] <= 1'b1;      // 이 행 완료 플래그
+                    done_mask[i] <= 1'b1;      // 행 완료 플래그 -> Store
                 end
             end
 
