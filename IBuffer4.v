@@ -38,8 +38,17 @@ module IBuffer4 (
 
     assign IROW_o = {OD_a[0], OD_a[1], OD_a[2], OD_a[3]};
     
-    assign ICOL_VALID[0] = START_CALC;
-    assign ICOL_VALID[1] = ENPipe[0];
-    assign ICOL_VALID[2] = ENPipe[1];
-    assign ICOL_VALID[3] = ENPipe[2];
+		// 타이밍 제어를 위한 ICOL_VALID 1-Cycle Delay
+		wire [3:0] icv;
+		reg [3:0] icv_next; 
+		always@(posedge CLK or negedge RSTN) begin
+			if(~RSTN) icv_next <= 0;
+			else icv_next <= icv;
+		end
+				
+    assign icv[0] = START_CALC;
+    assign icv[1] = ENPipe[0];
+    assign icv[2] = ENPipe[1];
+    assign icv[3] = ENPipe[2];
+		assign ICOL_VALID = icv_next;
 endmodule
