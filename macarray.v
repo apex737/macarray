@@ -117,7 +117,7 @@ IBuffer4 u_ib4(
 
 wire [63:0] ODATA_mac;
 wire [3:0] OVALID_mac;
-MAC4x4 u_mac4x4(
+MAC4x4_v2 u_mac4x4(
 	// INPUT
 	.CLK(CLK), .RSTN(RSTN), 
 	.W_LOAD(WLoad_wm), 

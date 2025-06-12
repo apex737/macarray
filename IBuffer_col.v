@@ -2,8 +2,9 @@ module IBuffer_col (
 	input CLK,
 	input RSTN,
 	input WriteEN,
+	input [1:0] ICOL,
 	input ENDown, 
-	input [31:0] IWord,
+	input [7:0] IWord8,
 	output reg [7:0] OD,
 	output reg ENShift
 );
@@ -14,12 +15,7 @@ module IBuffer_col (
 			WData[2] <= 0; WData[3] <= 0;
 		end
 		else begin
-			if (WriteEN) begin
-				WData[0] <= IWord[31:24];
-				WData[1] <= IWord[23:16];
-				WData[2] <= IWord[15:8];
-				WData[3] <= IWord[7:0];
-			end
+			if (WriteEN) WData[ICOL] <= IWord8;
 			else if (ENDown) begin // 역할 1. ENDown은 Load된 IWord를 8bit씩 Shift 시킨다
 				WData[0] <= WData[1];
 				WData[1] <= WData[2];

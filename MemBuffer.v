@@ -19,7 +19,7 @@ always@(posedge CLK or negedge RSTN) begin
 	else begin
 		START_CALC1 <= START_CALC0; shamt1 <= shamt0;  
 		ILoad1 <= ILoad0; WLoad1 <= WLoad0;
-		ICOL1 <= ICOL0;  WROW1 <= WROW1;  ODST1 <= ODST0; 
+		ICOL1 <= ICOL0;  WROW1 <= WROW0;  ODST1 <= ODST0; 
 	end
 end
 endmodule

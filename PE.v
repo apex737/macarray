@@ -1,49 +1,34 @@
+// ────────────────────────────────────────────────────────────────
+//  PE : PSUM 누산 타이밍만 다시 정리 (else-if → 두 단계 if문)
+// ────────────────────────────────────────────────────────────────
 module PE (
-    input               CLK, RSTN, 
+    input               CLK, RSTN,
     input               W_LOAD,
     input       signed [7:0]  W_IN,
-    input               ENLeft,
-    output reg          ENRight,
-    input               ENTop,
-    output reg          ENDown,
+    input               ENLeft,  output reg ENRight,
+    input               ENTop,   output reg ENDown,
     input       signed [7:0]  A_IN,
     output reg  signed [7:0]  A_OUT,
     input       signed [15:0] PSUM_IN,
     output reg  signed [15:0] PSUM_OUT
 );
     reg signed [7:0]  W_reg;
-    reg signed [7:0]  A_r1;
-    reg signed [15:0] PSUM_r1;
-    reg signed [15:0] AxW;
-    reg               ENLeft_r1, ENTop_r1;
 
-    always @(posedge CLK or negedge RSTN) begin
-        if (!RSTN) W_reg <= 0;
+    always @(posedge CLK or negedge RSTN)
+        if (!RSTN)     W_reg <= 0;
         else if (W_LOAD) W_reg <= W_IN;
-    end
 
     always @(posedge CLK or negedge RSTN) begin
         if (!RSTN) begin
-            A_r1 <= 0; PSUM_r1 <= 0; AxW <= 0; ENLeft_r1 <= 0; ENTop_r1 <= 0;
-        end else if (ENTop | ENLeft) begin
-            A_r1 <= A_IN; 
-						PSUM_r1 <= PSUM_IN; 
-						AxW <= A_IN * W_reg;
-            ENLeft_r1 <= ENLeft; 
-						ENTop_r1 <= ENTop;
-        end else begin
-            A_r1 <= 0; PSUM_r1 <= 0; AxW <= 0; ENLeft_r1 <= 0; ENTop_r1 <= 0;
+            {A_OUT, PSUM_OUT} <= 0;
+            {ENRight, ENDown} <= 0;
         end
-    end
-
-    always @(posedge CLK or negedge RSTN) begin
-        if (!RSTN) begin
-            A_OUT <= 0; PSUM_OUT <= 0; ENRight <= 0; ENDown <= 0;
-        end else if (ENTop_r1 & ENLeft_r1) begin
-            A_OUT <= A_r1; 
-						PSUM_OUT <= PSUM_r1 + AxW;
-            ENRight <= ENLeft_r1; 
-						ENDown <= ENTop_r1;
-        end 
+        else if (ENLeft | ENTop) begin
+            A_OUT   <= A_IN;               // A 데이터 전달
+            ENRight <= ENLeft;             // Enable 전달 (→)
+            ENDown  <= ENTop;              // Enable 전달 (↓)
+            if (ENLeft & ENTop)            // 두 Enable 모두 들어올 때만 MAC
+                PSUM_OUT <= A_IN * W_reg + PSUM_IN;
+        end
     end
 endmodule
