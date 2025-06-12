@@ -25,7 +25,7 @@ module OutputStage (
     integer i;
 
     always @(posedge CLK or negedge RSTN) begin
-        if (!RSTN) begin
+        if (!RSTN || Tile_Done) begin
             // 초기화
             OMEM_Write  <= 1'b0;
             Tile_Done   <= 1'b0;

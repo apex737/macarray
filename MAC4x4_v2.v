@@ -1,8 +1,5 @@
-// ────────────────────────────────────────────────────────────────
-//  MAC4x4 : wbank 포함 + 디버그용 wire 노출
-// ────────────────────────────────────────────────────────────────
 module MAC4x4_v2 (
-    input               CLK, RSTN,
+    input               CLK, RSTN, CLR_DP, CLR_W,
     input               W_LOAD,
     input       [1:0]   WROW,
     input       [31:0]  WDATA,
@@ -40,7 +37,6 @@ module MAC4x4_v2 (
         for (i=0; i<4; i=i+1) begin : ROW
             for (j=0; j<4; j=j+1) begin : COL
 
-                // ─ Weight 선택 : 방금 적재한 행이면 WDATA 사용, 아니면 wbank
                 wire signed [7:0] w_val =
                     (W_LOAD && (WROW==i)) ? WDATA[31-j*8 -: 8]
                                           : wbank[i][31-j*8 -: 8];
@@ -52,7 +48,8 @@ module MAC4x4_v2 (
                                       : en_right_from_pes[i*4 + (j-1)];
 
                 PE pe_inst (
-                    .CLK    (CLK), .RSTN   (RSTN),
+                    .CLK    (CLK), .RSTN(RSTN), 
+										.CLR_DP (CLR_DP), .CLR_W(CLR_W),
                     .W_LOAD (W_LOAD & (WROW==i)),
                     .W_IN   (w_val),
                     .ENLeft (en_left),  .ENRight(en_right_from_pes[i*4+j]),

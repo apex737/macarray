@@ -13,7 +13,9 @@ module Control (
     output [3:0]   ODST,         // Output-memory 타일 주소 {t,m,row}
     output [3:0]   ADDR_I,       // Input  RAM 32-bit word addr
     output [3:0]   ADDR_W,       // Weight RAM 32-bit word addr
-    output [4:0]   shamt         // zero-padding shift (0/8/16/24)
+    output [4:0]   shamt,       // zero-padding shift (0/8/16/24)
+		output reg		 CLR_DP,
+		output reg		 CLR_W
 );
 
 // 런타임 매개변수
@@ -62,16 +64,17 @@ reg [1:0] ICnt, WCnt;
 reg [2:0] state, next;
 
 always @(posedge CLK or negedge RSTN) begin
-    if(!RSTN) begin
-        ICnt <= 0;
-        WCnt <= 0;
-    end
-    else begin
-        if(state == LOAD_BOTH || state == LOAD_INPUT) 
-            ICnt <= (ICnt == rem_t-1) ? 0 : ICnt + 1;
-				if(state == LOAD_BOTH)
-						WCnt <= (WCnt == rem_m-1) ? 0 : WCnt + 1;
-		end	 
+    if(!RSTN) begin ICnt <= 0; WCnt <= 0; end
+    else if(state == LOAD_BOTH) begin
+				ICnt <= (ICnt == rem_t-1) ? 0 : ICnt + 1;
+				WCnt <= (WCnt == rem_m-1) ? 0 : WCnt + 1;
+		end
+		else if(state == LOAD_INPUT) begin
+				ICnt <= (ICnt == rem_t-1) ? 0 : ICnt + 1;
+		end
+		else begin
+				ICnt <= 0; WCnt <= 0;
+		end
 end
 
 assign shamt = {2'b00,(3'd4-rem_n)} << 3;  // 0/8/16/24
@@ -100,7 +103,8 @@ end
 	always @(*) begin
 		{LOAD_I, LOAD_W, START_CALC} = 3'b000;
 		next = state;
-		
+		CLR_DP  = 1'b0;
+		CLR_W  = 1'b0;
 		case(state)
 		IDLE: if (Start) next = CLR_OMEM;
 		
@@ -110,10 +114,10 @@ end
 		end
 		
 		LOAD_BOTH: begin
-				{LOAD_I, LOAD_W, START_CALC} = 3'b110;
-				if(ICnt == rem_t-1 && WCnt == rem_m-1) begin  // 값이 전부 로드되면 
-						next = RUN;
-				end
+				LOAD_I = (ICnt != rem_t-1);
+				LOAD_W = (WCnt != rem_m-1);
+				START_CALC = 0;
+				if(ICnt == rem_t-1 && WCnt == rem_m-1) next = RUN;
 		end
 		
 		RUN: begin
@@ -122,25 +126,30 @@ end
 		end
 		
 		WAIT: begin // Tile_Done까지 대기
-			{LOAD_I, LOAD_W, START_CALC} = 3'b000;
 			if(Tile_Done) next = BRANCH;		
 		end
 		
 		BRANCH: begin
-			{LOAD_I, LOAD_W, START_CALC} = 3'b000;
 			if( (t==total_t-1) &&
 					(m==total_m-1) &&
-					(n==total_n-1) )
-									next = IDLE;   // 끝
-			else if(t)
+					(n==total_n-1) ) begin
+						next = IDLE;   // 끝
+						CLR_DP  = 1'b1;   // 마지막 타일 → 전부 flush
+						CLR_W   = 1'b1;
+			end
+			else if(t) begin
 					next = LOAD_INPUT; // 같은 Weight, 다음 I-로드
-			else
+				  CLR_DP  = 1'b1;
+			end
+			else begin
 					next = LOAD_BOTH;  // 다음 I/W
-					
+					CLR_DP  = 1'b1;   // 전부 flush
+					CLR_W   = 1'b1;
+			end
 		end
 
 		LOAD_INPUT: begin
-				{LOAD_I, LOAD_W, START_CALC} = 3'b100;
+				LOAD_I = (ICnt != rem_t-1);
 				if(ICnt == rem_t-1) next = RUN;
 		end
 

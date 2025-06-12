@@ -32,9 +32,10 @@ wire [1:0] ICOL_ctrl, WROW_ctrl;
 wire [3:0] ODST_ctrl;
 wire [4:0] shamt_ctrl;
 wire ILoad_ctrl, WLoad_ctrl;
+wire CLR_DP_ctrl, CLR_W_ctrl;
 wire Tile_Done_o;
 
-Control u_ctrl(
+Control_v2 u_ctrl(
 	// INPUT
 	.CLK(CLK), .RSTN(RSTN), .Start(START), .Tile_Done(Tile_Done_o), 
 	.MNT(MNT), 
@@ -42,7 +43,8 @@ Control u_ctrl(
 	.ADDR_I(ADDR_I), .ADDR_W(ADDR_W), // INTERFACE OUTPUT
 	.LOAD_I(ILoad_ctrl), .LOAD_W(WLoad_ctrl), 
 	.START_CALC(START_CALC_ctrl), .ACC(ACC_ctrl), .shamt(shamt_ctrl),   
-	.ICOL(ICOL_ctrl), .WROW(WROW_ctrl), .ODST(ODST_ctrl)
+	.ICOL(ICOL_ctrl), .WROW(WROW_ctrl), .ODST(ODST_ctrl),
+	.CLR_DP(CLR_DP_ctrl), .CLR_W(CLR_W_ctrl)
 );
 assign EN_I = ILoad_ctrl;
 assign EN_W = WLoad_ctrl;
@@ -120,6 +122,7 @@ wire [3:0] OVALID_mac;
 MAC4x4_v2 u_mac4x4(
 	// INPUT
 	.CLK(CLK), .RSTN(RSTN), 
+	.CLR_W(CLR_W_ctrl), .CLR_DP(CLR_DP_ctrl),
 	.W_LOAD(WLoad_wm), 
 	.WROW(WROW_wm), 
 	.WDATA(WShifted), // Valid INPUT_W
