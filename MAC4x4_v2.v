@@ -14,6 +14,8 @@ module MAC4x4_v2 (
     always @(posedge CLK or negedge RSTN) begin
         if (!RSTN)
             for (k=0; k<4; k=k+1) wbank[k] <= 0;
+				else if (CLR_W)           // ★ 추가
+						for(k=0;k<4;k=k+1) wbank[k] <= 0;
         else if (W_LOAD)
             wbank[WROW] <= WDATA;
     end

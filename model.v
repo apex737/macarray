@@ -53,8 +53,8 @@ module SRAM #(parameter BW = 32, AW = 4, ENTRY = 16, WRITE = 0, MEM_FILE="mem.he
     begin
         if (~CSN)
         begin
-            if (WEN)    outline    <= ram[A];
-            else        ram[A]    <= DI;
+            if (WEN)    outline    <= ram[A]; // read
+            else        ram[A]    <= DI; // write
         end
     end
 

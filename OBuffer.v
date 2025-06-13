@@ -1,17 +1,17 @@
-module OutputStage (
+module OBuffer (
     input               CLK,
     input               RSTN,
     input               CLR_DP,
-		input 			[2:0] 	ROW_TOTAL,
+
     input       [63:0]  MAC_ODATA,   // 16‑bit ×4 (row‑vector)
     input       [3:0]   MAC_OVALID,  // per‑row valid
     input       [3:0]   ODST_i,      // tile‑base dst address
     input       [1:0]   ICOL,        // column index 0..3
-    input               Load_EN, 			
+    input               Load_EN,
 
-    output reg  [63:0]  OMEM_Data, // WDATA
-    output reg  [3:0]   ODST_o,		 // ADDR_O
-    output reg          OMWrite_o, // 
+    output reg  [63:0]  OMEM_Data,
+    output reg  [3:0]   ODST_o,
+    output reg          OMWrite_o,
     output reg          Tile_Done
 );
     // ───────── 내부 버퍼 ─────────────────────────────────────
@@ -51,7 +51,7 @@ module OutputStage (
         if (!RSTN || CLR_DP) begin
             Write  <= 1'b0;
             idx  <= 2'd0;
-            OMWrite_o    <= 1'b0; 
+            OMWrite_o    <= 1'b0;
             Tile_Done    <= 1'b0;
             done_mask    <= 4'b0;
             for (i = 0; i < 4; i = i + 1) begin
@@ -92,7 +92,7 @@ module OutputStage (
                 endcase
 
                 // 다음 열로
-                if (idx == ROW_TOTAL - 1) begin
+                if (idx == 2'd3) begin
                     Tile_Done   <= 1'b1;            // 마지막 열
                     Write <= 1'b0;            // STORE 로 복귀
                     idx <= 2'd0;

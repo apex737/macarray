@@ -13,14 +13,14 @@ module macarray (
 	// INPUT DATA
 	input [31:0] RDATA_I,
 	input [31:0] RDATA_W,
-	input [63:0] RDATA_O,
 	// OUTPUT I/WMEM
 	output EN_I, EN_W, 
 	output [3:0] ADDR_I, ADDR_W, 
-	// OUTPUT OMEM
-	output EN_O, RW_O,
-	output [3:0] ADDR_O,
-	output [63:0] WDATA_O
+	// OMEM
+	input [63:0] RDATA_O,
+	output reg EN_O, RW_O,
+	output reg [3:0] ADDR_O,
+	output reg [63:0] WDATA_O
 );
 
 	
@@ -29,22 +29,24 @@ module macarray (
 //////////////////////////////////////////////////////////////////////
 wire ACC_ctrl, START_CALC_ctrl;
 wire [1:0] ICOL_ctrl, WROW_ctrl;
+wire [2:0] ROW_TOTAL_ctrl;
 wire [3:0] ODST_ctrl;
 wire [4:0] shamt_ctrl;
 wire ILoad_ctrl, WLoad_ctrl;
 wire CLR_DP_ctrl, CLR_W_ctrl;
 wire Tile_Done_o;
+wire LOAD_DONE, STORE_DONE;
 
 Control_v2 u_ctrl(
 	// INPUT
 	.CLK(CLK), .RSTN(RSTN), .Start(START), .Tile_Done(Tile_Done_o), 
-	.MNT(MNT), 
+	.MNT(MNT), .LOAD_DONE(LOAD_DONE), .STORE_DONE(STORE_DONE),
 	// OUTPUT
 	.ADDR_I(ADDR_I), .ADDR_W(ADDR_W), // INTERFACE OUTPUT
-	.LOAD_I(ILoad_ctrl), .LOAD_W(WLoad_ctrl), 
-	.START_CALC(START_CALC_ctrl), .ACC(ACC_ctrl), .shamt(shamt_ctrl),   
+	.LOAD_I(ILoad_ctrl), .LOAD_W(WLoad_ctrl), .START_CALC(START_CALC_ctrl), 
+	.ACC(ACC_ctrl), .OMSRC(OMSRC), .shamt(shamt_ctrl),   
 	.ICOL(ICOL_ctrl), .WROW(WROW_ctrl), .ODST(ODST_ctrl),
-	.CLR_DP(CLR_DP_ctrl), .CLR_W(CLR_W_ctrl)
+	.CLR_DP(CLR_DP_ctrl), .CLR_W(CLR_W_ctrl), .ROW_TOTAL(ROW_TOTAL_ctrl)
 );
 assign EN_I = ILoad_ctrl;
 assign EN_W = WLoad_ctrl;
@@ -104,17 +106,20 @@ WMBuffer u_wm (
 
 wire [3:0] ICOL_VALID_ib;
 wire [3:0] ODST_ib;
+wire [1:0] ICOL_ib;
 wire [31:0] IROW_ib;
+wire LOAD_EN_ib;
 IBuffer4 u_ib4(
 	// INPUT
   .CLK(CLK), .RSTN(RSTN), 
 	.LOAD_EN(ILoad_im), 
 	.START_CALC(START_CALC_im),
 	.IWord(IShifted), // Valid INPUT_I
-	.ICOL(ICOL_im), 
+	.ICOL_i(ICOL_im), 
 	.ODST_i(ODST_im),
 	// OUTPUT
-	.IROW_o(IROW_ib), .ICOL_VALID(ICOL_VALID_ib), .ODST_o(ODST_ib)
+	.IROW_o(IROW_ib), .ICOL_VALID(ICOL_VALID_ib), 
+	.ODST_o(ODST_ib), .ICOL_o(ICOL_ib), .LOAD_EN_o(LOAD_EN_ib)
 );
 
 wire [63:0] ODATA_mac;
@@ -133,15 +138,67 @@ MAC4x4_v2 u_mac4x4(
 
 wire [63:0] OMEM_Data_o;
 wire [3:0] ODST_o;
-wire OMEM_Write_o;
+wire OMWrite_o;
 OutputStage u_outputStage(
 	// INPUT
-	.CLK(CLK), .RSTN(RSTN), .MAC_ODATA(ODATA_mac),
-	.MAC_OVALID(OVALID_mac), .ODST_i(ODST_ib), 
+	.CLK(CLK), .RSTN(RSTN), .CLR_DP(CLR_DP_ctrl), .MAC_ODATA(ODATA_mac),
+	.MAC_OVALID(OVALID_mac), .ODST_i(ODST_ib), .ICOL(ICOL_ib),
+	.Load_EN(LOAD_EN_ib), .ROW_TOTAL(ROW_TOTAL_ctrl),
 	// OUTPUT
 	.OMEM_Data(OMEM_Data_o), .ODST_o(ODST_o),
-	.OMEM_Write(OMEM_Write_o), .Tile_Done(Tile_Done_o)          
+	.OMWrite_o(OMWrite_o), .Tile_Done(Tile_Done_o)          
 );
 
+wire OMWrite_om;
+wire [63:0] OMEM_Data_om;
+wire [3:0] ODST_om;
+
+OMBuffer u_om(
+	// INPUT
+	.CLK(CLK), .RSTN(RSTN),	.ODST_o(ODST_o),
+	.OMWrite_o(OMWrite_o), .OMEM_Data_o(OMEM_Data_o),
+	// OUTPUT
+	.ODST_om(ODST_om), .OMWrite_om(OMWrite_om),
+	.OMEM_Data_om(OMEM_Data_om)
+);
+
+wire EN_wb; 
+wire OMWrite_wb;
+wire [63:0] WData_wb;
+wire [3:0] ODST_wb;
+
+wire signed [15:0] seg0 = $signed(OMEM_Data_om[15:0])   + $signed(RDATA_O[15:0]);
+wire signed [15:0] seg1 = $signed(OMEM_Data_om[31:16])  + $signed(RDATA_O[31:16]);
+wire signed [15:0] seg2 = $signed(OMEM_Data_om[47:32])  + $signed(RDATA_O[47:32]);
+wire signed [15:0] seg3 = $signed(OMEM_Data_om[63:48])  + $signed(RDATA_O[63:48]);
+wire [63:0] DACC = {seg3, seg2, seg1, seg0};
+
+WBuffer u_wb(
+		// INPUT
+		.CLK(CLK), .RSTN(RSTN), .ODST_om(ODST_om), .ACC_ctrl(ACC_ctrl),
+		.OMWrite_om(OMWrite_om), .DACC(DACC), .ROW_TOTAL(ROW_TOTAL_ctrl),
+		.CLR_DP(CLR_DP_ctrl),
+		// OUTPUT
+		.LOAD_DONE(LOAD_DONE), .STORE_DONE(STORE_DONE), .ODST_wb(ODST_wb), 
+		.EN_wb(EN_wb), .WData_wb(WData_wb)
+);
+
+
+always@* begin
+	if (OMSRC) begin // WBuffer 경로
+		EN_O = EN_wb;
+		ADDR_O = ODST_wb;
+		WDATA_O = WData_wb;
+		RW_O = 1'b1;
+	end 
+	else begin // OBuffer -> OM 경로
+		EN_O = OMWrite_o;
+		ADDR_O = ODST_o;
+		WDATA_O = OMEM_Data_o;
+		RW_O = ~ACC_ctrl;
+	end
+end
+
+ 
 
 endmodule
