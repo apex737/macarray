@@ -32,8 +32,6 @@ module OutputStage (
     reg [1:0]  idx;       // 0 → 1 → 2 → 3
 
     integer i;
-
-    // ───────── ODST 래치 (column 기준) ───────────────────────
     always @(posedge CLK or negedge RSTN) begin
         if (!RSTN) begin
             for (i = 0; i < 4; i = i + 1) ODST_r[i] <= 0;
@@ -95,7 +93,7 @@ module OutputStage (
                 OMWrite_o <= 1'b1;
                 ODST_o    <= ODST_r[idx];
 
-                // column‑wise 패킹 : row0..row3 같은 col
+                // column‑wise 패킹
                 case (idx)
                     2'd0: OMEM_Data <= { row_buf[0][63:48], row_buf[1][63:48], row_buf[2][63:48], row_buf[3][63:48] };
                     2'd1: OMEM_Data <= { row_buf[0][47:32], row_buf[1][47:32], row_buf[2][47:32], row_buf[3][47:32] };

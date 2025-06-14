@@ -14,13 +14,13 @@ module MAC4x4_v2 (
     always @(posedge CLK or negedge RSTN) begin
         if (!RSTN)
             for (k=0; k<4; k=k+1) wbank[k] <= 0;
-				else if (CLR_W)           // ★ 추가
+				else if (CLR_W)           
 						for(k=0;k<4;k=k+1) wbank[k] <= 0;
         else if (W_LOAD)
             wbank[WROW] <= WDATA;
     end
 
-    /* 1. A / PSUM / Enable 파이프 ------------------------------- */
+    /* 1. A / PSUM / Enable PIPE ------------------------------- */
     wire signed [7:0]  a_wires [4:0][3:0];
     wire signed [15:0] psum_wires [3:0][4:0];
     wire        [15:0] en_down_from_pes;
@@ -36,7 +36,7 @@ module MAC4x4_v2 (
 			end
 		endgenerate
 
-    /* 2. 4×4 PE 인스턴스 ---------------------------------------- */
+    /* 2. 4×4 PE ---------------------------------------- */
     genvar i,j;
     generate
         for (i=0; i<4; i=i+1) begin : ROW
@@ -66,7 +66,7 @@ module MAC4x4_v2 (
         end
     endgenerate
 
-    /* 3. 출력 ----------------------------------------------------- */
+    /* 3. Output ----------------------------------------------------- */
     genvar r_out;
 		generate
 			for (r_out=0; r_out<4; r_out=r_out+1) begin : OUT_MAP              

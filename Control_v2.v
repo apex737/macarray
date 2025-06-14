@@ -20,6 +20,13 @@ module Control_v2 (
     output reg          CLR_DP,
     output reg          CLR_W
 );
+		reg start_d; // 전클럭 START 값
+		always @(posedge CLK or negedge RSTN) begin
+				if (!RSTN)  start_d <= 1'b0;
+				else        start_d <= Start;
+		end
+		wire start_pos = Start & ~start_d;
+
 
     // 1) 런타임 파라미터 & 타일 포인터
 		
@@ -127,8 +134,10 @@ module Control_v2 (
 				else if(state!=RUN) cnt <= 0;
         else cnt <= cnt + 1'b1;
 		end
+			
+    // 9) Next-state & 출력 제어	
+	 
 		
-    // 9) Next-state & 출력 제어				
     always @* begin
         next       = state;
         START_CALC = (state==RUN);
@@ -137,7 +146,7 @@ module Control_v2 (
 				next_omsrc = (~INIT_DONE || state==STORE_ACC); // overwrite
         case(state)
 				
-				IDLE: if(Start) next = LOAD_BOTH;
+				IDLE: if(start_pos) next = LOAD_BOTH;
 
         LOAD_BOTH: begin // 1
             if(~load_i_en && ~load_w_en)   next = RUN;
