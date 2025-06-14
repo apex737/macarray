@@ -43,12 +43,11 @@ module WBuffer(
 		reg ACC_active;
 
 		always @(posedge CLK or negedge RSTN) begin
-				if (!RSTN || CLR_DP)
-						ACC_active <= 1'b0;
-				else if (ACC_ctrl)                 // coarse-tile 시작
-						ACC_active <= 1'b1;
-				else if (state==STORE && STORE_DONE)  // 누산 결과 write 까지 끝난 후
-						ACC_active <= 1'b0;
+				if (!RSTN) 					ACC_active <= 1'b0;
+				else if(CLR_DP) 		ACC_active <= 1'b0;
+				else if (ACC_ctrl) 	ACC_active <= 1'b1;  // coarse-tile 시작
+				else if (state==STORE && STORE_DONE) 
+														ACC_active <= 1'b0; // 누산 결과 write 까지 끝난 후
 		end
 
 		wire LOAD_ROW = (ACC_active && OMWrite_om && state==IDLE);

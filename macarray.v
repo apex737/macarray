@@ -141,9 +141,10 @@ wire [3:0] ODST_o;
 wire OMWrite_o;
 OutputStage u_outputStage(
 	// INPUT
-	.CLK(CLK), .RSTN(RSTN), .CLR_DP(CLR_DP_ctrl), .MAC_ODATA(ODATA_mac),
-	.MAC_OVALID(OVALID_mac), .ODST_i(ODST_ib), .ICOL(ICOL_ib),
-	.Load_EN(LOAD_EN_ib), .ROW_TOTAL(ROW_TOTAL_ctrl),
+	.CLK(CLK), .RSTN(RSTN), .CLR_DP(CLR_DP_ctrl), .ROW_TOTAL(ROW_TOTAL_ctrl),
+	.MAC_ODATA(ODATA_mac), .MAC_OVALID(OVALID_mac), 
+	.ODST_i(ODST_ib), .ICOL(ICOL_ib),
+	.Load_EN(LOAD_EN_ib), 
 	// OUTPUT
 	.OMEM_Data(OMEM_Data_o), .ODST_o(ODST_o),
 	.OMWrite_o(OMWrite_o), .Tile_Done(Tile_Done_o)          

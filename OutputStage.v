@@ -48,7 +48,7 @@ module OutputStage (
 
     // ───────── 메인 로직 ────────────────────────────────────
     always @(posedge CLK or negedge RSTN) begin
-        if (!RSTN || CLR_DP) begin
+        if (!RSTN) begin
             Write  <= 1'b0;
             idx  <= 2'd0;
             OMWrite_o    <= 1'b0; 
@@ -58,7 +58,19 @@ module OutputStage (
                 row_buf[i] <= 64'b0;
                 seg_cnt[i] <= 2'd0;
             end
-        end else begin
+        end 
+				else if (CLR_DP) begin
+					Write  <= 1'b0;
+            idx  <= 2'd0;
+            OMWrite_o    <= 1'b0; 
+            Tile_Done    <= 1'b0;
+            done_mask    <= 4'b0;
+            for (i = 0; i < 4; i = i + 1) begin
+                row_buf[i] <= 64'b0;
+                seg_cnt[i] <= 2'd0;
+            end
+				end
+				else begin
             OMWrite_o <= 1'b0;   // 기본값
             Tile_Done <= 1'b0;
 

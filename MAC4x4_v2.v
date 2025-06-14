@@ -27,11 +27,14 @@ module MAC4x4_v2 (
     wire        [15:0] en_right_from_pes;
 
     genvar r_in,c_in;
-    for (r_in=0; r_in<4; r_in=r_in+1)
-        assign a_wires[0][r_in] = IDATA[31-r_in*8 -: 8];
-
-    for (c_in=0; c_in<4; c_in=c_in+1)
-        assign psum_wires[c_in][0] = 16'd0;
+		generate 
+			for (r_in=0; r_in<4; r_in=r_in+1) begin : A_INIT
+					assign a_wires[0][r_in] = IDATA[31-r_in*8 -: 8];
+			end
+			for (c_in=0; c_in<4; c_in=c_in+1) begin : PSUM_INIT
+					assign psum_wires[c_in][0] = 16'd0;
+			end
+		endgenerate
 
     /* 2. 4×4 PE 인스턴스 ---------------------------------------- */
     genvar i,j;
@@ -65,10 +68,12 @@ module MAC4x4_v2 (
 
     /* 3. 출력 ----------------------------------------------------- */
     genvar r_out;
-    for (r_out=0; r_out<4; r_out=r_out+1) begin
-        assign ODATA [63-r_out*16 -: 16] = psum_wires[r_out][4];
-        assign OVALID[r_out]             = en_right_from_pes[r_out*4+3];
-    end
+		generate
+			for (r_out=0; r_out<4; r_out=r_out+1) begin : OUT_MAP              
+					assign ODATA [63-r_out*16 -: 16] = psum_wires[r_out][4];
+					assign OVALID[r_out]             = en_right_from_pes[r_out*4+3];
+			end
+		endgenerate
 endmodule
 
 

@@ -56,6 +56,7 @@ module Control_v2 (
 					omsrc_r <= next_omsrc;      // 한 클럭 딜레이
 			end
 		end
+		
 		assign OMSRC = omsrc_r;
 
 		
@@ -121,10 +122,12 @@ module Control_v2 (
 
     // 8) 4-cycle RUN 타이머
     reg [1:0] cnt;
-    always @(posedge CLK or negedge RSTN)
-        if(!RSTN || state!=RUN) cnt <= 0;
+    always @(posedge CLK or negedge RSTN) begin
+        if(!RSTN) cnt <= 0;
+				else if(state!=RUN) cnt <= 0;
         else cnt <= cnt + 1'b1;
-				
+		end
+		
     // 9) Next-state & 출력 제어				
     always @* begin
         next       = state;
