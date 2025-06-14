@@ -10,6 +10,7 @@ module WBuffer(
     // To Control
     output reg          LOAD_DONE,       // 4개 모이면 1-pulse
     output reg          STORE_DONE,      // 4개 write 완료 1-pulse
+		output reg					INIT_DONE,
 
     // To Output-Memory (via OMSRC==1 MUX)
     output reg  [3:0]   ODST_wb,
@@ -27,11 +28,13 @@ module WBuffer(
     //----------------------------------------------------------------
     // 상태기
     //----------------------------------------------------------------
-    localparam IDLE  = 2'd0,   // 모으는 중
-               READY = 2'd1,   // 모였음 (LOAD_DONE)
-               STORE = 2'd2;   // write
+    localparam INIT  = 2'd0,
+							 IDLE  = 2'd1,   // 모으는 중
+               READY = 2'd2,   // 모였음 (LOAD_DONE)
+               STORE = 2'd3;   // write
+							 
 
-    reg [1:0] state, next;
+    reg [1:0] state;
 
     //----------------------------------------------------------------
     // Row_Done 수집
@@ -71,13 +74,15 @@ module WBuffer(
             wdone   <= 1'b0;
         end
     end
-
-    //----------------------------------------------------------------
+		
+		
     // 상태 전이 & 메모리 Write 제어
-    //----------------------------------------------------------------
+		reg [3:0] init_ptr;
     always @(posedge CLK or negedge RSTN) begin
         if(!RSTN) begin
-            state <= IDLE;
+            state <= INIT;
+						INIT_DONE <= 0;
+						init_ptr   <= 1'b0;
             LOAD_DONE  <= 1'b0;
             STORE_DONE <= 1'b0;
             EN_wb      <= 1'b0;
@@ -92,6 +97,17 @@ module WBuffer(
             EN_wb      <= 1'b0;
 
             case(state)
+						  INIT : begin
+									EN_wb    <= 1'b1;
+									ODST_wb  <= init_ptr;
+									WData_wb <= 64'd0;
+									init_ptr <= init_ptr + 1'b1;
+									if(init_ptr == 4'd15) begin
+											INIT_DONE <= 1'b1;
+											state     <= IDLE;
+									end
+							end
+							
 							IDLE : begin
 									if(wdone) begin
 											LOAD_DONE <= 1'b1;   // Control_v2 알림
@@ -122,4 +138,3 @@ module WBuffer(
         end
     end
 endmodule
-

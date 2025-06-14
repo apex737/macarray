@@ -35,12 +35,12 @@ wire [4:0] shamt_ctrl;
 wire ILoad_ctrl, WLoad_ctrl;
 wire CLR_DP_ctrl, CLR_W_ctrl;
 wire Tile_Done_o;
-wire LOAD_DONE, STORE_DONE;
+wire LOAD_DONE, STORE_DONE, INIT_DONE;
 
 Control_v2 u_ctrl(
 	// INPUT
 	.CLK(CLK), .RSTN(RSTN), .Start(START), .Tile_Done(Tile_Done_o), 
-	.MNT(MNT), .LOAD_DONE(LOAD_DONE), .STORE_DONE(STORE_DONE),
+	.MNT(MNT), .LOAD_DONE(LOAD_DONE), .STORE_DONE(STORE_DONE), .INIT_DONE(INIT_DONE),
 	// OUTPUT
 	.ADDR_I(ADDR_I), .ADDR_W(ADDR_W), // INTERFACE OUTPUT
 	.LOAD_I(ILoad_ctrl), .LOAD_W(WLoad_ctrl), .START_CALC(START_CALC_ctrl), 
@@ -180,7 +180,7 @@ WBuffer u_wb(
 		.CLR_DP(CLR_DP_ctrl),
 		// OUTPUT
 		.LOAD_DONE(LOAD_DONE), .STORE_DONE(STORE_DONE), .ODST_wb(ODST_wb), 
-		.EN_wb(EN_wb), .WData_wb(WData_wb)
+		.EN_wb(EN_wb), .WData_wb(WData_wb), .INIT_DONE(INIT_DONE)
 );
 
 
